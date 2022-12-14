@@ -69,6 +69,9 @@ data ⟨_,_─→_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : S
   while : (e₀ e₁ : Ex k) (s : Store k)
     → ⟨ while e₀ loop e₁ , s ─→ if e₀ then (e₁ ; (while e₀ loop e₁)) else skip , s ⟩
 
+_is-reducible : {k : ℕ} → (es : Ex k × Store k) → Type
+_is-reducible {k = k} (e , s) = Σ (Ex k × Store k) λ (e' , s') → ⟨ e , s ─→ e' , s' ⟩
+
 -- Reduction chains.
 data ⟨_,_─→*_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : Store k) → Type where
   [] : (e : Ex k) (s : Store k)

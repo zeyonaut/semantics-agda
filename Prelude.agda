@@ -25,11 +25,11 @@ open import Agda.Builtin.Bool public
 
 -- Natural numbers.
 open import Agda.Builtin.Nat public
-  using (zero ; suc ; _<_) renaming (Nat to ℕ ; _+_ to _+ℕ_)
+  using (zero ; suc) renaming (Nat to ℕ ; _+_ to _+ℕ_)
 
 -- Integers.
 data ℤ : Type where
-  posi : ℕ → ℤ
+  pos  : ℕ → ℤ
   nsuc : ℕ → ℤ
   
 -- Paths.
@@ -43,6 +43,7 @@ infix 0 _≡_
 data _+_ (L : Type ℓ₀) (R : Type ℓ₁) : Type (ℓ₀ ⊔ ℓ₁) where
   in₀ : L → (L + R)
   in₁ : R → (L + R)
+infix 0 _+_
 
 -- Dependent pair types.
 record Σ (B : Type ℓ₀) (F : B → Type ℓ₁) : Type (ℓ₀ ⊔ ℓ₁) where
@@ -78,6 +79,9 @@ infix 0 _,_,_
 _≠_ : {A : Type ℓ} (x y : A) → Type ℓ
 x ≠ y = (x ≡ y) → 𝟎 
 
+open import Agda.Builtin.Maybe public
+  using (Maybe) renaming (nothing to none ; just to some)
+
 -- Decidability.
 _is-decidable : Type ℓ → Type ℓ
 T is-decidable = T + (¬ T) 
@@ -106,6 +110,7 @@ data Fin : (n : ℕ) → Type where
 data Vec (A : Type) : (n : ℕ) → Type where
   [] : Vec A zero
   _::_ : {n : ℕ} (x : A) (xs : Vec A n) → Vec A (suc n)
+infixr 10 _::_
 
 _#_ : {A : Type} {n : ℕ} → Vec A n → Fin n → A
 (x :: v) # zero    = x
@@ -115,24 +120,36 @@ _/_↦_ : {A : Type} {n : ℕ} → Vec A n → Fin n → A → Vec A n
 (x :: xs) / zero  ↦ x' = x' :: xs
 (x :: xs) / suc k ↦ x' = x  :: (xs / k ↦ x')
 
+_<_ : ℕ → ℕ → Type
+_     < zero  = 𝟎
+zero  < suc _ = 𝟏
+suc a < suc b = a < b
+
+<→F : {a b : ℕ} → a < b → Fin b
+<→F {a = zero}  {b = suc b} p = zero
+<→F {a = suc a} {b = suc b} p = suc (<→F p)
+
+fin : (a : ℕ) {b : ℕ} {p : a < b} → Fin b
+fin a {p = p} = <→F p
+
 -- Operators for natural numbers and integers.
 _+ℤ_ : (x : ℤ) → (y : ℤ) → ℤ
-posi x +ℤ posi y = posi (x +ℕ y)
-posi zero +ℤ nsuc y = nsuc y
-posi (suc x) +ℤ nsuc zero = posi x
-posi (suc x) +ℤ nsuc (suc y) = posi x +ℤ nsuc y
-nsuc x +ℤ posi zero = nsuc x
-nsuc zero +ℤ posi (suc y) = posi y
-nsuc (suc x) +ℤ posi (suc y) = nsuc x +ℤ posi y
+pos x +ℤ pos y = pos (x +ℕ y)
+pos zero +ℤ nsuc y = nsuc y
+pos (suc x) +ℤ nsuc zero = pos x
+pos (suc x) +ℤ nsuc (suc y) = pos x +ℤ nsuc y
+nsuc x +ℤ pos zero = nsuc x
+nsuc zero +ℤ pos (suc y) = pos y
+nsuc (suc x) +ℤ pos (suc y) = nsuc x +ℤ pos y
 nsuc x +ℤ nsuc y = nsuc (suc (x +ℕ y))
 
 ≥Bℕ : (l r : ℕ) → Bool
-≥Bℕ zero r = true
-≥Bℕ (suc l) zero = false
+≥Bℕ l       zero    = true
+≥Bℕ zero    (suc r) = false
 ≥Bℕ (suc l) (suc r) = ≥Bℕ l r
 
 _≥Bℤ_ : (l r : ℤ) → Bool
-_≥Bℤ_ (posi a) (posi b) = ≥Bℕ a b
-_≥Bℤ_ (posi a) (nsuc b) = true
-_≥Bℤ_ (nsuc a) (posi b) = false
+_≥Bℤ_ (pos a)  (pos b)  = ≥Bℕ a b
+_≥Bℤ_ (pos a)  (nsuc b) = true
+_≥Bℤ_ (nsuc a) (pos b)  = false
 _≥Bℤ_ (nsuc a) (nsuc b) = ≥Bℕ b a

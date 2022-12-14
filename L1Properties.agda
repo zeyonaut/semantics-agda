@@ -1,4 +1,4 @@
-{-# OPTIONS --without-K --exact-split --safe #-}
+{-# OPTIONS --without-K --exact-split --safe  #-}
 
 module L1Properties where
 
@@ -27,7 +27,7 @@ determinacy (while e₀ e₁ s)   (while .e₀ .e₁ .s)   = refl (if e₀ then 
 -- A well-typed expression is a value or is reducible with any store.
 progress : {k : ℕ} {Γ : Ctx k} {e : Ex k} {T : Ty}
          → (t : Γ ⊢ e ⦂ T) (s : Store k)
-         → ((e is-value) + (Σ (Ex k × Store k) λ (e' , s') → ⟨ e , s ─→ e' , s' ⟩))
+         → e is-value + (e , s) is-reducible
 progress                    (ty-int n)           s = in₀ ⋆
 progress                    (ty-deref {l = l} p) s = in₁ ((int! (s # l) , s) , deref l s)
 progress {e = _ op[ _ ] e₁} (ty-op+ t₀ t₁)       s
@@ -89,7 +89,7 @@ preserve* (r :: r*) t = preserve* r* (preserve r t)
 -- Any reduction chain with a well-typed initial expression has a final expression which is a value or has a final pair which is reducible.
 safety : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
   → (r* : ⟨ e , s ─→* e' , s' ⟩) (t : Γ ⊢ e ⦂ T)
-  → (e' is-value) + (Σ (Ex k × Store k) λ (e'' , s'') → ⟨ e' , s' ─→ e'' , s'' ⟩)
+  → e' is-value + (e' , s') is-reducible
 safety {s' = s'} r* t = progress (preserve* r* t) s'
 
 -- Theorem (Uniqueness of Typing):
@@ -186,3 +186,63 @@ decide-typing Γ e T
   with decide-eq-ty T T'
 ... | in₀ (refl .T') = in₀ t'
 ... | in₁ T≠T' = in₁ λ t → T≠T' (uniqueness t t')
+
+-- Values are irreducible in any store.
+value→irreducible : {k : ℕ} {e : Ex k}
+  → (v : e is-value) (s : Store k)
+  → ¬ ((e , s) is-reducible)
+value→irreducible () s ((.(int! (n₀ +ℤ n₁)) , .s) , op+-n n₀ n₁ .s)
+value→irreducible () s ((.(bool! (n₀ ≥Bℤ n₁)) , .s) , op≥-n n₀ n₁ .s)
+value→irreducible () s ((.(_ op[ o ] e₁) , πᵣ₁) , op-r₀ r o e₁)
+value→irreducible () s ((.(int! n₀ op[ o ] _) , πᵣ₁) , op-r₁ n₀ o r)
+value→irreducible () s ((.(int! (s # l)) , .s) , deref l .s)
+value→irreducible () s ((.skip , .(s / l ↦ n)) , assign-n l n .s)
+value→irreducible () s ((.(l := _) , πᵣ₁) , assign-r l r)
+value→irreducible () .(πᵣ es') (es' , seq-n .(πₗ es') .(πᵣ es'))
+value→irreducible () s ((.(_ ; e₁) , πᵣ₁) , seq-r r e₁)
+value→irreducible () s ((.(Bool-if n₀ e₁ e₂) , .s) , if-n n₀ e₁ e₂ .s)
+value→irreducible () s ((.(if _ then e₁ else e₂) , πᵣ₁) , if-r r e₁ e₂)
+value→irreducible () s ((.(if e₀ then e₁ ; (while e₀ loop e₁) else skip) , .s) , while e₀ e₁ .s)
+
+-- Evaluation.
+evaluate : {k : ℕ} {Γ : Ctx k} {e : Ex k} {T : Ty}
+  → (t : Γ ⊢ e ⦂ T) (s : Store k) (depth : ℕ)
+  → Maybe (Σ (Ex k × Store k) λ (e' , s') → ⟨ e , s ─→* e' , s' ⟩)
+evaluate {e = e} _ s zero = some ((e , s), [] e s) 
+evaluate {e = e} t s (suc depth)
+  with progress t s
+... | in₀ v               = some ((e , s) , [] e s)
+... | in₁ ((e' , s') , r)
+  with evaluate (preserve r t) s' depth
+... | some ((e'' , s'') , r*) = some ((e'' , s'') , r :: r*)
+... | none = none
+
+-- Type inference and evaluation witnesses.
+ty? : {k : ℕ}
+  → (Γ : Ctx k) (e : Ex k)
+  → Maybe Ty
+ty? Γ e with infer Γ e
+... | in₀ (T , _) = some T
+... | in₁ _       = none
+
+ev? : {k : ℕ}
+  → (Γ : Ctx k) (e : Ex k) (s : Store k) (depth : ℕ)
+  → Maybe (Ex k × Store k)
+ev? Γ e s depth
+  with infer Γ e
+... | in₁ _ = none
+... | in₀ (_ , t)
+  with evaluate t s depth
+... | none = none
+... | some (es' , _) = some es'
+
+step? : {k : ℕ}
+  → (Γ : Ctx k) (e : Ex k) (s : Store k)
+  → Maybe (Ex k × Store k)
+step? Γ e s
+  with infer Γ e
+... | in₁ _ = none
+... | in₀ (_ , t)
+  with progress t s
+... | in₀ _ = none
+... | in₁ (es' , _) = some es'
