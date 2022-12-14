@@ -58,39 +58,39 @@ progress {e = e₀ ; e₁}          (ty-seq t₀ t₁) s
 
 -- Theorem (Type Preservation):
 -- Any reduction step with a well-typed initial expression has a well-typed final expression.
-preservation : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
+preserve : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
   → (r : ⟨ e , s ─→ e' , s' ⟩) (t : Γ ⊢ e ⦂ T)
   → (Γ ⊢ e' ⦂ T)
-preservation (op+-n n₀ n₁ _)    (ty-op+ _ _)     = ty-int (n₀ +ℤ n₁)
-preservation (op≥-n n₀ n₁ _)    (ty-op≥ _ _)     = ty-bool (n₀ ≥Bℤ n₁)
-preservation (op-r₀ r₀ .o+ _)   (ty-op+ t₀ t₁)   = ty-op+ (preservation r₀ t₀) t₁
-preservation (op-r₀ r₀ .o≥ _)   (ty-op≥ t₀ t₁)   = ty-op≥ (preservation r₀ t₀) t₁
-preservation (op-r₁ _ .o+ r₁)   (ty-op+ t₀ t₁)   = ty-op+ t₀ (preservation r₁ t₁)
-preservation (op-r₁ _ .o≥ r₁)   (ty-op≥ t₀ t₁)   = ty-op≥ t₀ (preservation r₁ t₁)
-preservation (deref l s)        (ty-deref _)     = ty-int (s # l)
-preservation (assign-n _ _ _)   (ty-assign _ _)  = ty-skip
-preservation (assign-r _ r)     (ty-assign p t)  = ty-assign p (preservation r t)
-preservation (seq-n _ _)        (ty-seq _ t₁)    = t₁
-preservation (seq-r r₀ _)       (ty-seq t₀ t₁)   = ty-seq (preservation r₀ t₀) t₁
-preservation (if-n true _ _ _)  (ty-if _ t₁ _)   = t₁
-preservation (if-n false _ _ _) (ty-if _ _ t₂)   = t₂
-preservation (if-r r₀ _ _)      (ty-if t₀ t₁ t₂) = ty-if (preservation r₀ t₀) t₁ t₂
-preservation (while _ _ _)      (ty-while t₀ t₁) = ty-if t₀ (ty-seq t₁ (ty-while t₀ t₁)) ty-skip
+preserve (op+-n n₀ n₁ _)    (ty-op+ _ _)     = ty-int (n₀ +ℤ n₁)
+preserve (op≥-n n₀ n₁ _)    (ty-op≥ _ _)     = ty-bool (n₀ ≥Bℤ n₁)
+preserve (op-r₀ r₀ .o+ _)   (ty-op+ t₀ t₁)   = ty-op+ (preserve r₀ t₀) t₁
+preserve (op-r₀ r₀ .o≥ _)   (ty-op≥ t₀ t₁)   = ty-op≥ (preserve r₀ t₀) t₁
+preserve (op-r₁ _ .o+ r₁)   (ty-op+ t₀ t₁)   = ty-op+ t₀ (preserve r₁ t₁)
+preserve (op-r₁ _ .o≥ r₁)   (ty-op≥ t₀ t₁)   = ty-op≥ t₀ (preserve r₁ t₁)
+preserve (deref l s)        (ty-deref _)     = ty-int (s # l)
+preserve (assign-n _ _ _)   (ty-assign _ _)  = ty-skip
+preserve (assign-r _ r)     (ty-assign p t)  = ty-assign p (preserve r t)
+preserve (seq-n _ _)        (ty-seq _ t₁)    = t₁
+preserve (seq-r r₀ _)       (ty-seq t₀ t₁)   = ty-seq (preserve r₀ t₀) t₁
+preserve (if-n true _ _ _)  (ty-if _ t₁ _)   = t₁
+preserve (if-n false _ _ _) (ty-if _ _ t₂)   = t₂
+preserve (if-r r₀ _ _)      (ty-if t₀ t₁ t₂) = ty-if (preserve r₀ t₀) t₁ t₂
+preserve (while _ _ _)      (ty-while t₀ t₁) = ty-if t₀ (ty-seq t₁ (ty-while t₀ t₁)) ty-skip
 
 -- Corollary (Type Preservation for Reduction Chains):
 -- Any reduction chain with a well-typed initial expression has a well-typed final expression.
-preservation-chain : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
+preserve* : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
   → (r* : ⟨ e , s ─→* e' , s' ⟩) (t : Γ ⊢ e ⦂ T)
   → (Γ ⊢ e' ⦂ T)
-preservation-chain ([] _ _) t = t
-preservation-chain (r :: r*) t = preservation-chain r* (preservation r t)
+preserve* ([] _ _) t = t
+preserve* (r :: r*) t = preserve* r* (preserve r t)
 
 -- Theorem (Type Safety):
 -- Any reduction chain with a well-typed initial expression has a final expression which is a value or has a final pair which is reducible.
 safety : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
   → (r* : ⟨ e , s ─→* e' , s' ⟩) (t : Γ ⊢ e ⦂ T)
   → (e' is-value) + (Σ (Ex k × Store k) λ (e'' , s'') → ⟨ e' , s' ─→ e'' , s'' ⟩)
-safety {s' = s'} r* t = progress (preservation-chain r* t) s'
+safety {s' = s'} r* t = progress (preserve* r* t) s'
 
 -- Theorem (Uniqueness of Typing):
 -- Any two typing judgements with the same context and expression have equal types.
@@ -110,79 +110,79 @@ uniqueness (ty-seq _ t₁)   (ty-seq _ u₁)   = uniqueness t₁ u₁
 
 -- Theorem (Type Inference):
 -- For any context and expression, the existence of a matching type is decidable.
-inference : {k : ℕ}
+infer : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k)
   → (Σ Ty (Γ ⊢ e ⦂_)) is-decidable
-inference Γ (int! n)  = in₀ (int  , ty-int n)
-inference Γ (bool! n) = in₀ (bool , ty-bool n)
-inference Γ skip      = in₀ (unit , ty-skip)
-inference Γ (e₀ op[ o+ ] e₁)
-  with inference Γ e₀  | inference Γ e₁
+infer Γ (int! n)  = in₀ (int  , ty-int n)
+infer Γ (bool! n) = in₀ (bool , ty-bool n)
+infer Γ skip      = in₀ (unit , ty-skip)
+infer Γ (e₀ op[ o+ ] e₁)
+  with infer Γ e₀  | infer Γ e₁
 ... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (int , invert-op+ t .πₗ .πᵣ)}
 ... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)}
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
-  with decide-ty T₀ int | decide-ty T₁ int
+  with decide-eq-ty T₀ int | decide-eq-ty T₁ int
 ... | in₀ (refl .int) | in₀ (refl .int) = in₀ (int , ty-op+ t₀ t₁)
 ... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ {(_ , t) → T₁≠int (uniqueness t₁ (invert-op+ t .πᵣ .πᵣ))}
 ... | in₁ T₀≠int      | _               = in₁ λ {(_ , t) → T₀≠int (uniqueness t₀ (invert-op+ t .πₗ .πᵣ))}
-inference Γ (e₀ op[ o≥ ] e₁)
-  with inference Γ e₀  | inference Γ e₁
+infer Γ (e₀ op[ o≥ ] e₁)
+  with infer Γ e₀  | infer Γ e₁
 ... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (int , invert-op≥ t .πₗ .πᵣ)}
 ... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (int , invert-op≥ t .πᵣ .πᵣ)}
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
-  with decide-ty T₀ int | decide-ty T₁ int
+  with decide-eq-ty T₀ int | decide-eq-ty T₁ int
 ... | in₀ (refl .int) | in₀ (refl .int) = in₀ (bool , ty-op≥ t₀ t₁)
 ... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ {(_ , t) → T₁≠int (uniqueness t₁ (invert-op≥ t .πᵣ .πᵣ))}
 ... | in₁ T₀≠int      | _               = in₁ λ {(_ , t) → T₀≠int (uniqueness t₀ (invert-op≥ t .πₗ .πᵣ))}
-inference Γ (if e₀ then e₁ else e₂)
-  with inference Γ e₀ | inference Γ e₁ | inference Γ e₂
+infer Γ (if e₀ then e₁ else e₂)
+  with infer Γ e₀ | infer Γ e₁ | infer Γ e₂
 ... | in₁ nt₀       | _             | _             = in₁ λ {(_ , t) → nt₀ (bool , (invert-if t .π₀ .πᵣ))}
 ... | in₀ (T₀ , t₀) | in₁ nt₁       | _             = in₁ λ {(T , t) → nt₁ (T    , (invert-if t .π₁ .πᵣ))}
 ... | in₀ (T₀ , t₀) | in₀ x         | in₁ nt₂       = in₁ λ {(T , t) → nt₂ (T    , (invert-if t .π₂ .πᵣ))}
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁) | in₀ (T₂ , t₂)
-  with decide-ty T₀ bool | decide-ty T₁ T₂
+  with decide-eq-ty T₀ bool | decide-eq-ty T₁ T₂
 ... | in₀ (refl .bool) | in₀ (refl .T₁) = in₀ (T₁ , ty-if t₀ t₁ t₂)
 ... | in₀ (refl .bool) | in₁ T₁≠T₂      = in₁ λ {(_ , t) → T₁≠T₂ (uniqueness t₁ (invert-if t .π₁ .πᵣ) ∙ uniqueness (invert-if t .π₂ .πᵣ) t₂)}
 ... | in₁ T₀≠bool      | _              = in₁ λ {(_ , t) → T₀≠bool (uniqueness t₀ (invert-if t .π₀ .πᵣ))}
-inference Γ (l := e)
-  with inference Γ e
+infer Γ (l := e)
+  with infer Γ e
 ... | in₁ nt = in₁ λ {(T , t) → nt (int , invert-assign t .πᵣ .πᵣ)}
 ... | in₀ (T₀ , t₀)
-  with decide-ty T₀ int | decide-tyl (Γ # l) intref
+  with decide-eq-ty T₀ int | decide-eq-tyl (Γ # l) intref
 ... | in₁ T₀≠int      | _              = in₁ λ {(T , t) → T₀≠int (uniqueness t₀ (invert-assign t .πᵣ .πᵣ))}
 ... | in₀ (refl .int) | in₀ p          = in₀ (unit , ty-assign p t₀)
 ... | in₀ (refl .int) | in₁ Γ#l≠intref = in₁ λ {(T , t) → Γ#l≠intref (invert-assign t .πₗ)}
-inference Γ (* l)
-  with decide-tyl (Γ # l) intref
+infer Γ (* l)
+  with decide-eq-tyl (Γ # l) intref
 ... | in₀ p  = in₀ (int , ty-deref p)
 ... | in₁ np = in₁ λ {(T , t) → np (invert-deref t)}
-inference Γ (e₀ ; e₁)
-  with inference Γ e₀ | inference Γ e₁
+infer Γ (e₀ ; e₁)
+  with infer Γ e₀ | infer Γ e₁
 ... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (unit , invert-seq t .πₗ .πᵣ)}
 ... | in₀ _         | in₁ nt₁       = in₁ λ {(T , t) → nt₁ (T    , invert-seq t .πᵣ .πᵣ)}
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
-  with decide-ty T₀ unit
+  with decide-eq-ty T₀ unit
 ... | in₀ (refl .unit) = in₀ (T₁ , ty-seq t₀ t₁)
 ... | in₁ T₀≠unit      = in₁ λ {(_ , t) → T₀≠unit (uniqueness t₀ (invert-seq t .πₗ .πᵣ))}
-inference Γ (while e₀ loop e₁)
-  with inference Γ e₀ | inference Γ e₁
+infer Γ (while e₀ loop e₁)
+  with infer Γ e₀ | infer Γ e₁
 ... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (bool , invert-while t .πₗ .πᵣ)}
 ... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (unit , invert-while t .πᵣ .πᵣ)}
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
-  with decide-ty T₀ bool | decide-ty T₁ unit
+  with decide-eq-ty T₀ bool | decide-eq-ty T₁ unit
 ... | in₀ (refl .bool) | in₀ (refl .unit) = in₀ (unit , ty-while t₀ t₁)
 ... | in₀ (refl .bool) | in₁ T₁≠unit      = in₁ λ {(_ , t) → T₁≠unit (uniqueness t₁ (invert-while t .πᵣ .πᵣ))}
 ... | in₁ T₀≠bool      | _                = in₁ λ {(_ , t) → T₀≠bool (uniqueness t₀ (invert-while t .πₗ .πᵣ))}
 
 -- Theorem (Decidability of Typing Judgements):
 -- Any typing judgement is decidable.
-typing-is-decidable : {k : ℕ}
+decide-typing : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k) (T : Ty)
   → (Γ ⊢ e ⦂ T) is-decidable
-typing-is-decidable Γ e T
-  with inference Γ e
+decide-typing Γ e T
+  with infer Γ e
 ... | in₁ nt = in₁ λ t → nt (T , t)
 ... | in₀ (T' , t')
-  with decide-ty T T'
+  with decide-eq-ty T T'
 ... | in₀ (refl .T') = in₀ t'
 ... | in₁ T≠T' = in₁ λ t → T≠T' (uniqueness t t')

@@ -119,20 +119,20 @@ data _⊢_⦂_ {k : ℕ} (Γ : Ctx k) : (e : Ex k) (T : Ty) → Type where
     → Γ ⊢ (e₀ ; e₁) ⦂ T
 
 -- Ty has decidable equality.
-decide-ty : (a b : Ty) → (a ≡ b) is-decidable
-decide-ty int  int  = in₀ (refl int)
-decide-ty int  bool = in₁ λ ()
-decide-ty int  unit = in₁ λ ()
-decide-ty bool int  = in₁ λ ()
-decide-ty bool bool = in₀ (refl bool)
-decide-ty bool unit = in₁ λ ()
-decide-ty unit int  = in₁ λ ()
-decide-ty unit bool = in₁ λ ()
-decide-ty unit unit = in₀ (refl unit)
+decide-eq-ty : (a b : Ty) → (a ≡ b) is-decidable
+decide-eq-ty int  int  = in₀ (refl int)
+decide-eq-ty int  bool = in₁ λ ()
+decide-eq-ty int  unit = in₁ λ ()
+decide-eq-ty bool int  = in₁ λ ()
+decide-eq-ty bool bool = in₀ (refl bool)
+decide-eq-ty bool unit = in₁ λ ()
+decide-eq-ty unit int  = in₁ λ ()
+decide-eq-ty unit bool = in₁ λ ()
+decide-eq-ty unit unit = in₀ (refl unit)
 
 -- Tyₗ has decidable equality.
-decide-tyl : (a b : Tyₗ) → (a ≡ b) is-decidable
-decide-tyl intref intref = in₀ (refl intref)
+decide-eq-tyl : (a b : Tyₗ) → (a ≡ b) is-decidable
+decide-eq-tyl intref intref = in₀ (refl intref)
 
 -- Inequalities for Ty.
 bool≠int : bool ≠ int

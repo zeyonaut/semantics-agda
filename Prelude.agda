@@ -29,8 +29,8 @@ open import Agda.Builtin.Nat public
 
 -- Integers.
 data ℤ : Type where
-  posNat : ℕ → ℤ
-  negsuc : ℕ → ℤ
+  posi : ℕ → ℤ
+  nsuc : ℕ → ℤ
   
 -- Paths.
 data _≡_ {A : Type ℓ} : A → A → Type ℓ where
@@ -117,14 +117,14 @@ _/_↦_ : {A : Type} {n : ℕ} → Vec A n → Fin n → A → Vec A n
 
 -- Operators for natural numbers and integers.
 _+ℤ_ : (x : ℤ) → (y : ℤ) → ℤ
-posNat x +ℤ posNat y = posNat (x +ℕ y)
-posNat zero +ℤ negsuc y = negsuc y
-posNat (suc x) +ℤ negsuc zero = posNat x
-posNat (suc x) +ℤ negsuc (suc y) = posNat x +ℤ negsuc y
-negsuc x +ℤ posNat zero = negsuc x
-negsuc zero +ℤ posNat (suc y) = posNat y
-negsuc (suc x) +ℤ posNat (suc y) = negsuc x +ℤ posNat y
-negsuc x +ℤ negsuc y = negsuc (suc (x +ℕ y))
+posi x +ℤ posi y = posi (x +ℕ y)
+posi zero +ℤ nsuc y = nsuc y
+posi (suc x) +ℤ nsuc zero = posi x
+posi (suc x) +ℤ nsuc (suc y) = posi x +ℤ nsuc y
+nsuc x +ℤ posi zero = nsuc x
+nsuc zero +ℤ posi (suc y) = posi y
+nsuc (suc x) +ℤ posi (suc y) = nsuc x +ℤ posi y
+nsuc x +ℤ nsuc y = nsuc (suc (x +ℕ y))
 
 ≥Bℕ : (l r : ℕ) → Bool
 ≥Bℕ zero r = true
@@ -132,7 +132,7 @@ negsuc x +ℤ negsuc y = negsuc (suc (x +ℕ y))
 ≥Bℕ (suc l) (suc r) = ≥Bℕ l r
 
 _≥Bℤ_ : (l r : ℤ) → Bool
-_≥Bℤ_ (posNat a) (posNat b) = ≥Bℕ a b
-_≥Bℤ_ (posNat a) (negsuc b) = true
-_≥Bℤ_ (negsuc a) (posNat b) = false
-_≥Bℤ_ (negsuc a) (negsuc b) = ≥Bℕ b a
+_≥Bℤ_ (posi a) (posi b) = ≥Bℕ a b
+_≥Bℤ_ (posi a) (nsuc b) = true
+_≥Bℤ_ (nsuc a) (posi b) = false
+_≥Bℤ_ (nsuc a) (nsuc b) = ≥Bℕ b a
