@@ -118,24 +118,22 @@ inference Γ (bool! n) = in₀ (bool , ty-bool n)
 inference Γ skip      = in₀ (unit , ty-skip)
 inference Γ (e₀ op[ o+ ] e₁)
   with inference Γ e₀  | inference Γ e₁
-... | in₀ (int  , t₀) | in₀ (int  , t₁) = in₀ (int , ty-op+ t₀ t₁)
-... | in₀ (int  , t₀) | in₀ (bool , t₁) = in₁ λ {(T , t) → bool≠int (uniqueness t₁ (invert-op+ t .πᵣ .πᵣ))}
-... | in₀ (int  , t₀) | in₀ (unit , t₁) = in₁ λ {(T , t) → unit≠int (uniqueness t₁ (invert-op+ t .πᵣ .πᵣ))}
-... | in₀ (int  , t₀) | in₁ nt₁         = in₁ λ {(T , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)}
-... | in₀ (bool , t₀) | in₀ (_    , t₁) = in₁ λ {(T , t) → bool≠int (uniqueness t₀ (invert-op+ t .πₗ .πᵣ))}
-... | in₀ (bool , t₀) | in₁ nt₁         = in₁ λ {(T , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)}
-... | in₀ (unit , t₀) | in₀ (_    , t₁) = in₁ λ {(T , t) → unit≠int (uniqueness t₀ (invert-op+ t .πₗ .πᵣ))}
-... | in₀ (unit , t₀) | in₁ nt₁         = in₁ λ {(T , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)}
-... | in₁ nt₀         | _               = in₁ λ {(T , t) → nt₀ (int , invert-op+ t .πₗ .πᵣ)}
+... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (int , invert-op+ t .πₗ .πᵣ)}
+... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)}
+... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
+  with decide-ty T₀ int | decide-ty T₁ int
+... | in₀ (refl .int) | in₀ (refl .int) = in₀ (int , ty-op+ t₀ t₁)
+... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ {(_ , t) → T₁≠int (uniqueness t₁ (invert-op+ t .πᵣ .πᵣ))}
+... | in₁ T₀≠int      | _               = in₁ λ {(_ , t) → T₀≠int (uniqueness t₀ (invert-op+ t .πₗ .πᵣ))}
 inference Γ (e₀ op[ o≥ ] e₁)
   with inference Γ e₀  | inference Γ e₁
-... | in₀ (int  , t₀) | in₀ (int  , t₁) = in₀ (bool , ty-op≥ t₀ t₁)
-... | in₀ (int  , t₀) | in₀ (bool , t₁) = in₁ λ {(T , t) → bool≠int (uniqueness t₁ (invert-op≥ t .πᵣ .πᵣ))}
-... | in₀ (int  , t₀) | in₀ (unit , t₁) = in₁ λ {(T , t) → unit≠int (uniqueness t₁ (invert-op≥ t .πᵣ .πᵣ))}
-... | in₀ (int  , t₀) | in₁ nt₁         = in₁ λ {(T , t) → nt₁ (int , invert-op≥ t .πᵣ .πᵣ)}
-... | in₀ (bool , t₀) | _               = in₁ λ {(T , t) → bool≠int (uniqueness t₀ (invert-op≥ t .πₗ .πᵣ))}
-... | in₀ (unit , t₀) | _               = in₁ λ {(T , t) → unit≠int (uniqueness t₀ (invert-op≥ t .πₗ .πᵣ))}
-... | in₁ nt₀         | _               = in₁ λ {(T , t) → nt₀ (int , invert-op≥ t .πₗ .πᵣ)}
+... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (int , invert-op≥ t .πₗ .πᵣ)}
+... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (int , invert-op≥ t .πᵣ .πᵣ)}
+... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
+  with decide-ty T₀ int | decide-ty T₁ int
+... | in₀ (refl .int) | in₀ (refl .int) = in₀ (bool , ty-op≥ t₀ t₁)
+... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ {(_ , t) → T₁≠int (uniqueness t₁ (invert-op≥ t .πᵣ .πᵣ))}
+... | in₁ T₀≠int      | _               = in₁ λ {(_ , t) → T₀≠int (uniqueness t₀ (invert-op≥ t .πₗ .πᵣ))}
 inference Γ (if e₀ then e₁ else e₂)
   with inference Γ e₀ | inference Γ e₁ | inference Γ e₂
 ... | in₁ nt₀       | _             | _             = in₁ λ {(_ , t) → nt₀ (bool , (invert-if t .π₀ .πᵣ))}
