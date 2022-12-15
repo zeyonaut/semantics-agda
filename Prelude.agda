@@ -50,12 +50,14 @@ record Σ (B : Type ℓ₀) (F : B → Type ℓ₁) : Type (ℓ₀ ⊔ ℓ₁) w
   constructor
     _,_
   field
-    πₗ : B
-    πᵣ : F πₗ
+    π₀ : B
+    π₁ : F π₀
 open Σ public
 infix 0 _,_
-
 {-# BUILTIN SIGMA Σ #-}
+
+∃ : {B : Type ℓ₀} (F : B → Type ℓ₁) → Type (ℓ₀ ⊔ ℓ₁)
+∃ {B = B} F = Σ B F
 
 -- Product types.
 _×_ : Type ℓ₀ → Type ℓ₁ → Type (ℓ₀ ⊔ ℓ₁)
@@ -83,8 +85,9 @@ open import Agda.Builtin.Maybe public
   using (Maybe) renaming (nothing to none ; just to some)
 
 -- Decidability.
-_is-decidable : Type ℓ → Type ℓ
-T is-decidable = T + (¬ T) 
+data _is-decidable (T : Type ℓ) : Type ℓ where
+  yes : T   → T is-decidable
+  no  : ¬ T → T is-decidable
 
 -- Path operators.
 sym : {A : Type ℓ} {x y : A} → x ≡ y → y ≡ x

@@ -25,31 +25,31 @@ instance
   ℤNeg .Negative.fromNeg    (suc n) = nsuc n
 
 test-0 : ev? []
-             (int! -11 op[ o+ ] int! 7)
+             (int: -11 op[ o+ ] int: 7)
              []
              1
-       ≡ some (int! -4 , [])
+       ≡ some (int: -4 , [])
 test-0 = refl _
 
-test-1 : ev? (intref :: [])
-             (0 := (* 0 op[ o+ ] int! 1))
+test-1 : ev? (^int :: [])
+             (0 := (^ 0 op[ o+ ] int: 1))
              (0 :: [])
              3
        ≡ some (skip , 1 :: [])
 test-1 = refl _
 
 test-2 : ev? []
-             (int! 12 op[ o≥ ] int! 12)
+             (int: 12 op[ o≥ ] int: 12)
              []
              1
-       ≡ some (bool! true , [])
+       ≡ some (bool: true , [])
 test-2 = refl _
 
-test-3 : ev? (intref :: intref :: intref :: [])
+test-3 : ev? (^int :: ^int :: ^int :: [])
              (
-             while * 1 op[ o≥ ] * 0
-             loop  ( (2 := (* 2 op[ o+ ] * 0))
-                   ; (0 := (* 0 op[ o+ ] int! 1))
+             while ^ 1 op[ o≥ ] ^ 0
+             loop  ( (2 := (^ 2 op[ o+ ] ^ 0))
+                   ; (0 := (^ 0 op[ o+ ] int: 1))
                    )
              )
              (0 :: 10 :: 0 :: [])
