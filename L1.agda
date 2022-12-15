@@ -144,9 +144,9 @@ InvertTy : {k : ℕ}
 InvertTy _ (int: _)                _ = ℤ
 InvertTy _ (bool: _)               _ = Bool
 InvertTy _ skip                    _ = 𝟏
-InvertTy Γ (e₀ op[ _ ] e₁)         _ = (Γ ⊢ e₀ ⦂ int) × (Γ ⊢ e₁ ⦂ int)
+InvertTy Γ (e₀ op[ _ ] e₁)         _ = (Γ ⊢ e₀ ⦂ int)  × (Γ ⊢ e₁ ⦂ int)
 InvertTy Γ (if e₀ then e₁ else e₂) T = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ T) × (Γ ⊢ e₂ ⦂ T)
-InvertTy Γ (l := e)                _ = (Γ # l ≡ ^int) × (Γ ⊢ e ⦂ int)
+InvertTy Γ (l := e)                _ = (Γ # l ≡ ^int)  × (Γ ⊢ e ⦂ int)
 InvertTy Γ (^ l)                   _ = Γ # l ≡ ^int
 InvertTy Γ (e₀ ; e₁)               T = (Γ ⊢ e₀ ⦂ unit) × (Γ ⊢ e₁ ⦂ T)
 InvertTy Γ (while e₀ loop e₁)      _ = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ unit)

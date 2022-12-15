@@ -5,6 +5,14 @@ module L1Properties where
 open import Prelude
 open import L1
 
+-- Enable equality decision syntax.
+open DecideEq {{...}}
+instance
+  Ty=? : DecideEq Ty
+  Ty=? .DecideEq._=?_ = _ty=?_
+  Tyₗ=? : DecideEq Tyₗ
+  Tyₗ=? .DecideEq._=?_ = _tyl=?_
+
 -- Theorem (Determinacy):
 -- Any two reduction steps with the same initial pair have equal final pairs.
 determinacy : {k : ℕ} {e e₀ e₁ : Ex k} {s s₀ s₁ : Store k}
@@ -110,69 +118,69 @@ uniqueness (ty-seq _ t₁)   (ty-seq _ u₁)   = uniqueness t₁ u₁
 
 -- Theorem (Type Inference):
 -- For any context and expression, the existence of a matching type is decidable.
-∃?_⊢_⦂- : {k : ℕ}
+_⊢_⦂…∃? : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k)
   → (∃ (Γ ⊢ e ⦂_)) is-decidable
-∃? Γ ⊢ (int: n)         ⦂- = yes (int  , ty-int n)
-∃? Γ ⊢ (bool: n)        ⦂- = yes (bool , ty-bool n)
-∃? Γ ⊢ skip             ⦂- = yes (unit , ty-skip)
-∃? Γ ⊢ (e₀ op[ o+ ] e₁) ⦂-
-  with ∃? Γ ⊢ e₀ ⦂-  | ∃? Γ ⊢ e₁ ⦂-
+Γ ⊢ (int: n)         ⦂…∃? = yes (int  , ty-int n)
+Γ ⊢ (bool: n)        ⦂…∃? = yes (bool , ty-bool n)
+Γ ⊢ skip             ⦂…∃? = yes (unit , ty-skip)
+Γ ⊢ (e₀ op[ o+ ] e₁) ⦂…∃?
+  with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
 ... | no  ¬∃₀       | _             = no λ (T , t) → ¬∃₀ (int , invert-ty t .π₀)
 ... | yes _         | no  ¬∃₁       = no λ (_ , t) → ¬∃₁ (int , invert-ty t .π₁)
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
-  with T₀ ty=? int | T₁ ty=? int
-... | yes (refl .int) | yes (refl .int) = yes (int , ty-op+ t₀ t₁)
-... | yes (refl .int) | no  T₁≠int      = no  λ (_ , t) → T₁≠int (uniqueness t₁ (invert-ty t .π₁))
+  with T₀ =? int | T₁ =? int
 ... | no  T₀≠int      | _               = no  λ (_ , t) → T₀≠int (uniqueness t₀ (invert-ty t .π₀))
-∃? Γ ⊢ (e₀ op[ o≥ ] e₁) ⦂- 
-  with ∃? Γ ⊢ e₀ ⦂-  | ∃? Γ ⊢ e₁ ⦂-
+... | yes _           | no  T₁≠int      = no  λ (_ , t) → T₁≠int (uniqueness t₁ (invert-ty t .π₁))
+... | yes (refl .int) | yes (refl .int) = yes (int , ty-op+ t₀ t₁)
+Γ ⊢ (e₀ op[ o≥ ] e₁) ⦂…∃? 
+  with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
 ... | no  ¬∃₀       | _             = no λ (_ , t) → ¬∃₀ (int , invert-ty t .π₀)
 ... | yes _         | no ¬∃₁        = no λ (_ , t) → ¬∃₁ (int , invert-ty t .π₁)
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
-  with T₀ ty=? int |  T₁ ty=? int
-... | yes (refl .int) | yes (refl .int) = yes (bool , ty-op≥ t₀ t₁)
-... | yes (refl .int) | no  T₁≠int      = no  λ (_ , t) → T₁≠int (uniqueness t₁ (invert-ty t .π₁))
+  with T₀ =? int | T₁ =? int
 ... | no  T₀≠int      | _               = no  λ (_ , t) → T₀≠int (uniqueness t₀ (invert-ty t .π₀))
-∃? Γ ⊢ (if e₀ then e₁ else e₂) ⦂-
-  with ∃? Γ ⊢ e₀ ⦂- | ∃? Γ ⊢ e₁ ⦂- | ∃? Γ ⊢ e₂ ⦂-
+... | yes _           | no  T₁≠int      = no  λ (_ , t) → T₁≠int (uniqueness t₁ (invert-ty t .π₁))
+... | yes (refl .int) | yes (refl .int) = yes (bool , ty-op≥ t₀ t₁)
+Γ ⊢ (if e₀ then e₁ else e₂) ⦂…∃?
+  with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃? | Γ ⊢ e₂ ⦂…∃?
 ... | no  ¬∃₀       | _             | _             = no λ (_ , t) → ¬∃₀ (bool , (invert-ty t .π₀))
-... | yes (T₀ , t₀) | no  ¬∃₁       | _             = no λ (T , t) → ¬∃₁ (T    , (invert-ty t .π₁))
-... | yes (T₀ , t₀) | yes x         | no  ¬∃₂       = no λ (T , t) → ¬∃₂ (T    , (invert-ty t .π₂))
+... | yes _         | no  ¬∃₁       | _             = no λ (T , t) → ¬∃₁ (T    , (invert-ty t .π₁))
+... | yes _         | yes _         | no  ¬∃₂       = no λ (T , t) → ¬∃₂ (T    , (invert-ty t .π₂))
 ... | yes (T₀ , t₀) | yes (T₁ , t₁) | yes (T₂ , t₂)
-  with T₀ ty=? bool | T₁ ty=? T₂
-... | yes (refl .bool) | yes (refl .T₁) = yes (T₁ , ty-if t₀ t₁ t₂)
-... | yes (refl .bool) | no  T₁≠T₂      = no  λ (_ , t) → T₁≠T₂ (uniqueness t₁ (invert-ty t .π₁) ∙ uniqueness (invert-ty t .π₂) t₂)
+  with T₀ =? bool | T₁ =? T₂
 ... | no  T₀≠bool      | _              = no  λ (_ , t) → T₀≠bool (uniqueness t₀ (invert-ty t .π₀))
-∃? Γ ⊢ (l := e) ⦂-
-  with ∃? Γ ⊢ e ⦂-
+... | yes _            | no  T₁≠T₂      = no  λ (_ , t) → T₁≠T₂ (uniqueness t₁ (invert-ty t .π₁) ∙ uniqueness (invert-ty t .π₂) t₂)
+... | yes (refl .bool) | yes (refl .T₁) = yes (T₁ , ty-if t₀ t₁ t₂)
+Γ ⊢ (l := e) ⦂…∃?
+  with Γ ⊢ e ⦂…∃?
 ... | no  ¬∃        = no  λ (T , t) → ¬∃ (int , invert-ty t .π₁)
 ... | yes (T₀ , t₀)
-  with T₀ ty=? int | (Γ # l) tyl=? ^int
-... | no  T₀≠int      | _            = no  λ (_ , t) → T₀≠int (uniqueness t₀ (invert-ty t .π₁))
-... | yes (refl .int) | yes p        = yes (unit , ty-assign p t₀)
-... | yes (refl .int) | no  Γ#l≠^int = no  λ (_ , t) → Γ#l≠^int (invert-ty t .π₀)
-∃? Γ ⊢ (^ l) ⦂-
-  with (Γ # l) tyl=? ^int
-... | yes Γ#l=^int = yes (int , ty-deref Γ#l=^int)
+  with (Γ # l) =? ^int | T₀ =? int
+... | no  Γ#l≠^int | _               = no  λ (_ , t) → Γ#l≠^int (invert-ty t .π₀)
+... | yes Γ#l=^int | no T₀≠int       = no  λ (_ , t) → T₀≠int (uniqueness t₀ (invert-ty t .π₁))
+... | yes Γ#l=^int | yes (refl .int) = yes (unit , ty-assign Γ#l=^int t₀)
+Γ ⊢ (^ l) ⦂…∃?
+  with (Γ # l) =? ^int
 ... | no  Γ#l≠^int = no  λ (T , t) → Γ#l≠^int (invert-ty t)
-∃? Γ ⊢ (e₀ ; e₁) ⦂-
-  with ∃? Γ ⊢ e₀ ⦂- | ∃? Γ ⊢ e₁ ⦂-
+... | yes Γ#l=^int = yes (int , ty-deref Γ#l=^int)
+Γ ⊢ (e₀ ; e₁) ⦂…∃?
+  with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
 ... | no  ¬∃₀       | _             = no  λ (_ , t) → ¬∃₀ (unit , invert-ty t .π₀)
 ... | yes _         | no  ¬∃₁       = no  λ (T , t) → ¬∃₁ (T    , invert-ty t .π₁)
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
-  with T₀ ty=? unit
-... | yes (refl .unit) = yes (T₁ , ty-seq t₀ t₁)
+  with T₀ =? unit
 ... | no  T₀≠unit      = no  λ (_ , t) → T₀≠unit (uniqueness t₀ (invert-ty t .π₀))
-∃? Γ ⊢ (while e₀ loop e₁) ⦂-
-  with ∃? Γ ⊢ e₀ ⦂- | ∃? Γ ⊢ e₁ ⦂-
+... | yes (refl .unit) = yes (T₁ , ty-seq t₀ t₁)
+Γ ⊢ (while e₀ loop e₁) ⦂…∃?
+  with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
 ... | no  ¬∃₀       | _             = no  λ (_ , t) → ¬∃₀ (bool , invert-ty t .π₀)
 ... | yes _         | no  ¬∃₁       = no  λ (_ , t) → ¬∃₁ (unit , invert-ty t .π₁)
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
-  with T₀ ty=?  bool | T₁ ty=? unit
-... | yes (refl .bool) | yes (refl .unit) = yes (unit , ty-while t₀ t₁)
-... | yes (refl .bool) | no  T₁≠unit      = no  λ (_ , t) → T₁≠unit (uniqueness t₁ (invert-ty t .π₁))
+  with T₀ =? bool | T₁ =? unit
 ... | no  T₀≠bool      | _                = no  λ (_ , t) → T₀≠bool (uniqueness t₀ (invert-ty t .π₀))
+... | yes (refl .bool) | no  T₁≠unit      = no  λ (_ , t) → T₁≠unit (uniqueness t₁ (invert-ty t .π₁))
+... | yes (refl .bool) | yes (refl .unit) = yes (unit , ty-while t₀ t₁)
 
 -- Theorem (Decidability of Typing Judgements):
 -- Any typing judgement is decidable.
@@ -180,12 +188,12 @@ _⊢?_⦂_ : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k) (T : Ty)
   → (Γ ⊢ e ⦂ T) is-decidable
 Γ ⊢? e ⦂ T
-  with ∃? Γ ⊢ e ⦂-
-... | no  ¬∃        = no  λ t → ¬∃ (T , t)
+  with Γ ⊢ e ⦂…∃?
+... | no  ¬∃        = no λ t → ¬∃ (T , t)
 ... | yes (T' , t')
-  with T ty=? T'
-... | yes (refl .T') = yes t'
+  with T =? T'
 ... | no  T≠T'       = no  λ t → T≠T' (uniqueness t t')
+... | yes (refl .T') = yes t'
 
 -- Values are irreducible in any store.
 value→irreducible : {k : ℕ} {e : Ex k}
@@ -221,15 +229,15 @@ evaluate {e = e} t s (suc depth)
 ty? : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k)
   → Maybe Ty
-ty? Γ e with ∃? Γ ⊢ e ⦂-
-... | yes (T , _) = some T
+ty? Γ e with Γ ⊢ e ⦂…∃?
 ... | no  _       = none
+... | yes (T , _) = some T
 
 ev? : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k) (s : Store k) (depth : ℕ)
   → Maybe (Ex k × Store k)
 ev? Γ e s depth
-  with ∃? Γ ⊢ e ⦂-
+  with Γ ⊢ e ⦂…∃?
 ... | no  _       = none
 ... | yes (_ , t)
   with evaluate t s depth
@@ -240,7 +248,7 @@ step? : {k : ℕ}
   → (Γ : Ctx k) (e : Ex k) (s : Store k)
   → Maybe (Ex k × Store k)
 step? Γ e s
-  with ∃? Γ ⊢ e ⦂-
+  with Γ ⊢ e ⦂…∃?
 ... | no  _       = none
 ... | yes (_ , t)
   with progress t s

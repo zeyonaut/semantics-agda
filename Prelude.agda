@@ -86,8 +86,12 @@ open import Agda.Builtin.Maybe public
 
 -- Decidability.
 data _is-decidable (T : Type ℓ) : Type ℓ where
-  yes : T   → T is-decidable
   no  : ¬ T → T is-decidable
+  yes : T   → T is-decidable
+
+record DecideEq (T : Type ℓ) : Type ℓ where
+  field
+    _=?_ : (a b : T) → (a ≡ b) is-decidable
 
 -- Path operators.
 sym : {A : Type ℓ} {x y : A} → x ≡ y → y ≡ x
