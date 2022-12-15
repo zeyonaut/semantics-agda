@@ -124,70 +124,43 @@ data _⊢_⦂_ {k : ℕ} (Γ : Ctx k) : (e : Ex k) (T : Ty) → Type where
 -- Ty has decidable equality.
 _ty=?_ : (a b : Ty) → (a ≡ b) is-decidable
 int  ty=? int  = yes (refl int)
-int  ty=? bool = no λ ()
-int  ty=? unit = no λ ()
-bool ty=? int  = no λ ()
+int  ty=? bool = no  λ ()
+int  ty=? unit = no  λ ()
+bool ty=? int  = no  λ ()
 bool ty=? bool = yes (refl bool)
-bool ty=? unit = no λ ()
-unit ty=? int  = no λ ()
-unit ty=? bool = no λ ()
+bool ty=? unit = no  λ ()
+unit ty=? int  = no  λ ()
+unit ty=? bool = no  λ ()
 unit ty=? unit = yes (refl unit)
 
 -- Tyₗ has decidable equality.
 _tyl=?_ : (a b : Tyₗ) → (a ≡ b) is-decidable
 ^int tyl=? ^int = yes (refl ^int)
 
--- Inversion helpers for typing judgements.
-invert-op+ : {k : ℕ} {e₀ e₁ : Ex k} {T : Ty} {Γ : Ctx k}
-  → (t : Γ ⊢ e₀ op[ o+ ] e₁ ⦂ T)
-  → (Σ (Ex k) (Γ ⊢_⦂ int)) × (Σ (Ex k) (Γ ⊢_⦂ int))
-invert-op+ {e₀ = e₀} _            .π₀ .π₀ = e₀
-invert-op+           (ty-op+ t₀ _).π₀ .π₁ = t₀
-invert-op+ {e₁ = e₁} _            .π₁ .π₀ = e₁
-invert-op+           (ty-op+ _ t₁).π₁ .π₁ = t₁
+-- Inversion helper for typing judgements.
+InvertTy : {k : ℕ}
+  → (Γ : Ctx k) (e : Ex k) (T : Ty)
+  → Type
+InvertTy _ (int: _)                _ = ℤ
+InvertTy _ (bool: _)               _ = Bool
+InvertTy _ skip                    _ = 𝟏
+InvertTy Γ (e₀ op[ _ ] e₁)         _ = (Γ ⊢ e₀ ⦂ int) × (Γ ⊢ e₁ ⦂ int)
+InvertTy Γ (if e₀ then e₁ else e₂) T = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ T) × (Γ ⊢ e₂ ⦂ T)
+InvertTy Γ (l := e)                _ = (Γ # l ≡ ^int) × (Γ ⊢ e ⦂ int)
+InvertTy Γ (^ l)                   _ = Γ # l ≡ ^int
+InvertTy Γ (e₀ ; e₁)               T = (Γ ⊢ e₀ ⦂ unit) × (Γ ⊢ e₁ ⦂ T)
+InvertTy Γ (while e₀ loop e₁)      _ = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ unit)
 
-invert-op≥ : {k : ℕ} {e₀ e₁ : Ex k} {T : Ty} {Γ : Ctx k}
-  → (t : Γ ⊢ e₀ op[ o≥ ] e₁ ⦂ T)
-  → (Σ (Ex k) (Γ ⊢_⦂ int)) × (Σ (Ex k) (Γ ⊢_⦂ int))
-invert-op≥ {e₀ = e₀} _            .π₀ .π₀ = e₀
-invert-op≥           (ty-op≥ t₀ _).π₀ .π₁ = t₀
-invert-op≥ {e₁ = e₁} _            .π₁ .π₀ = e₁
-invert-op≥           (ty-op≥ _ t₁).π₁ .π₁ = t₁
-
-invert-if : {k : ℕ} {e₀ e₁ e₂ : Ex k} {T : Ty} {Γ : Ctx k}
-  → (t : Γ ⊢ if e₀ then e₁ else e₂ ⦂ T)
-  → (Σ (Ex k) (Γ ⊢_⦂ bool)) × (Σ (Ex k) (Γ ⊢_⦂ T)) × (Σ (Ex k) (Γ ⊢_⦂ T))
-invert-if {e₀ = e₀} t             .π₀ .π₀ = e₀
-invert-if           (ty-if t₀ _ _).π₀ .π₁ = t₀
-invert-if {e₁ = e₁} t             .π₁ .π₀ = e₁
-invert-if           (ty-if _ t₁ _).π₁ .π₁ = t₁
-invert-if {e₂ = e₂} t             .π₂ .π₀ = e₂
-invert-if           (ty-if _ _ t₂).π₂ .π₁ = t₂
-
-invert-assign : {k : ℕ} {Γ : Ctx k} {l : Fin k} {e : Ex k} {T : Ty} 
-  → (t : Γ ⊢ l := e ⦂ T)
-  → (Γ # l ≡ ^int) × (Σ (Ex k) (Γ ⊢_⦂ int))
-invert-assign         (ty-assign p _).π₀ = p
-invert-assign {e = e} _              .π₁ .π₀ = e
-invert-assign         (ty-assign _ t).π₁ .π₁ = t
-
-invert-deref : {k : ℕ} {Γ : Ctx k} {l : Fin k} {T : Ty} 
-  → (t : Γ ⊢ ^ l ⦂ T)
-  → (Γ # l ≡ ^int)
-invert-deref (ty-deref p) = p
-
-invert-seq : {k : ℕ} {e₀ e₁ : Ex k} {T : Ty} {Γ : Ctx k}
-  → (t : Γ ⊢ e₀ ; e₁ ⦂ T)
-  → (Σ (Ex k) (Γ ⊢_⦂ unit)) × (Σ (Ex k) (Γ ⊢_⦂ T))
-invert-seq {e₀ = e₀} _            .π₀ .π₀ = e₀
-invert-seq           (ty-seq t₀ _).π₀ .π₁ = t₀
-invert-seq {e₁ = e₁} _            .π₁ .π₀ = e₁
-invert-seq           (ty-seq _ t₁).π₁ .π₁ = t₁
-
-invert-while : {k : ℕ} {e₀ e₁ : Ex k} {T : Ty} {Γ : Ctx k}
-  → (t : Γ ⊢ while e₀ loop e₁ ⦂ T)
-  → (Σ (Ex k) (Γ ⊢_⦂ bool)) × (Σ (Ex k) (Γ ⊢_⦂ unit))
-invert-while {e₀ = e₀} _              .π₀ .π₀ = e₀
-invert-while           (ty-while t₀ _).π₀ .π₁ = t₀
-invert-while {e₁ = e₁} _              .π₁ .π₀ = e₁
-invert-while           (ty-while _ t₁).π₁ .π₁ = t₁
+invert-ty : {k : ℕ} {Γ : Ctx k} {e : Ex k} {T : Ty}
+  → (t : Γ ⊢ e ⦂ T)
+  → InvertTy Γ e T
+invert-ty (ty-int n)       = n
+invert-ty (ty-deref p)     = p
+invert-ty (ty-op+ t₀ t₁)   = t₀ , t₁
+invert-ty (ty-bool b)      = b
+invert-ty (ty-op≥ t₀ t₁)   = t₀ , t₁
+invert-ty (ty-if t₀ t₁ t₂) = t₀ , t₁ , t₂
+invert-ty ty-skip          = ⋆
+invert-ty (ty-assign p t)  = p  , t
+invert-ty (ty-while t₀ t₁) = t₀ , t₁
+invert-ty (ty-seq t₀ t₁)   = t₀ , t₁
