@@ -118,61 +118,61 @@ infer Γ (bool! n) = in₀ (bool , ty-bool n)
 infer Γ skip      = in₀ (unit , ty-skip)
 infer Γ (e₀ op[ o+ ] e₁)
   with infer Γ e₀  | infer Γ e₁
-... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (int , invert-op+ t .πₗ .πᵣ)}
-... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)}
+... | in₁ nt₀       | _             = in₁ λ (_ , t) → nt₀ (int , invert-op+ t .πₗ .πᵣ)
+... | in₀ _         | in₁ nt₁       = in₁ λ (_ , t) → nt₁ (int , invert-op+ t .πᵣ .πᵣ)
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
   with decide-eq-ty T₀ int | decide-eq-ty T₁ int
 ... | in₀ (refl .int) | in₀ (refl .int) = in₀ (int , ty-op+ t₀ t₁)
-... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ {(_ , t) → T₁≠int (uniqueness t₁ (invert-op+ t .πᵣ .πᵣ))}
-... | in₁ T₀≠int      | _               = in₁ λ {(_ , t) → T₀≠int (uniqueness t₀ (invert-op+ t .πₗ .πᵣ))}
+... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ (_ , t) → T₁≠int (uniqueness t₁ (invert-op+ t .πᵣ .πᵣ))
+... | in₁ T₀≠int      | _               = in₁ λ (_ , t) → T₀≠int (uniqueness t₀ (invert-op+ t .πₗ .πᵣ))
 infer Γ (e₀ op[ o≥ ] e₁)
   with infer Γ e₀  | infer Γ e₁
-... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (int , invert-op≥ t .πₗ .πᵣ)}
-... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (int , invert-op≥ t .πᵣ .πᵣ)}
+... | in₁ nt₀       | _             = in₁ λ (_ , t) → nt₀ (int , invert-op≥ t .πₗ .πᵣ)
+... | in₀ _         | in₁ nt₁       = in₁ λ (_ , t) → nt₁ (int , invert-op≥ t .πᵣ .πᵣ)
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
   with decide-eq-ty T₀ int | decide-eq-ty T₁ int
 ... | in₀ (refl .int) | in₀ (refl .int) = in₀ (bool , ty-op≥ t₀ t₁)
-... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ {(_ , t) → T₁≠int (uniqueness t₁ (invert-op≥ t .πᵣ .πᵣ))}
-... | in₁ T₀≠int      | _               = in₁ λ {(_ , t) → T₀≠int (uniqueness t₀ (invert-op≥ t .πₗ .πᵣ))}
+... | in₀ (refl .int) | in₁ T₁≠int      = in₁ λ (_ , t) → T₁≠int (uniqueness t₁ (invert-op≥ t .πᵣ .πᵣ))
+... | in₁ T₀≠int      | _               = in₁ λ (_ , t) → T₀≠int (uniqueness t₀ (invert-op≥ t .πₗ .πᵣ))
 infer Γ (if e₀ then e₁ else e₂)
   with infer Γ e₀ | infer Γ e₁ | infer Γ e₂
-... | in₁ nt₀       | _             | _             = in₁ λ {(_ , t) → nt₀ (bool , (invert-if t .π₀ .πᵣ))}
-... | in₀ (T₀ , t₀) | in₁ nt₁       | _             = in₁ λ {(T , t) → nt₁ (T    , (invert-if t .π₁ .πᵣ))}
-... | in₀ (T₀ , t₀) | in₀ x         | in₁ nt₂       = in₁ λ {(T , t) → nt₂ (T    , (invert-if t .π₂ .πᵣ))}
+... | in₁ nt₀       | _             | _             = in₁ λ (_ , t) → nt₀ (bool , (invert-if t .π₀ .πᵣ))
+... | in₀ (T₀ , t₀) | in₁ nt₁       | _             = in₁ λ (T , t) → nt₁ (T    , (invert-if t .π₁ .πᵣ))
+... | in₀ (T₀ , t₀) | in₀ x         | in₁ nt₂       = in₁ λ (T , t) → nt₂ (T    , (invert-if t .π₂ .πᵣ))
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁) | in₀ (T₂ , t₂)
   with decide-eq-ty T₀ bool | decide-eq-ty T₁ T₂
 ... | in₀ (refl .bool) | in₀ (refl .T₁) = in₀ (T₁ , ty-if t₀ t₁ t₂)
-... | in₀ (refl .bool) | in₁ T₁≠T₂      = in₁ λ {(_ , t) → T₁≠T₂ (uniqueness t₁ (invert-if t .π₁ .πᵣ) ∙ uniqueness (invert-if t .π₂ .πᵣ) t₂)}
-... | in₁ T₀≠bool      | _              = in₁ λ {(_ , t) → T₀≠bool (uniqueness t₀ (invert-if t .π₀ .πᵣ))}
+... | in₀ (refl .bool) | in₁ T₁≠T₂      = in₁ λ (_ , t) → T₁≠T₂ (uniqueness t₁ (invert-if t .π₁ .πᵣ) ∙ uniqueness (invert-if t .π₂ .πᵣ) t₂)
+... | in₁ T₀≠bool      | _              = in₁ λ (_ , t) → T₀≠bool (uniqueness t₀ (invert-if t .π₀ .πᵣ))
 infer Γ (l := e)
   with infer Γ e
-... | in₁ nt = in₁ λ {(T , t) → nt (int , invert-assign t .πᵣ .πᵣ)}
+... | in₁ nt = in₁ λ (T , t) → nt (int , invert-assign t .πᵣ .πᵣ)
 ... | in₀ (T₀ , t₀)
   with decide-eq-ty T₀ int | decide-eq-tyl (Γ # l) intref
-... | in₁ T₀≠int      | _              = in₁ λ {(T , t) → T₀≠int (uniqueness t₀ (invert-assign t .πᵣ .πᵣ))}
+... | in₁ T₀≠int      | _              = in₁ λ (T , t) → T₀≠int (uniqueness t₀ (invert-assign t .πᵣ .πᵣ))
 ... | in₀ (refl .int) | in₀ p          = in₀ (unit , ty-assign p t₀)
-... | in₀ (refl .int) | in₁ Γ#l≠intref = in₁ λ {(T , t) → Γ#l≠intref (invert-assign t .πₗ)}
+... | in₀ (refl .int) | in₁ Γ#l≠intref = in₁ λ (T , t) → Γ#l≠intref (invert-assign t .πₗ)
 infer Γ (* l)
   with decide-eq-tyl (Γ # l) intref
 ... | in₀ p  = in₀ (int , ty-deref p)
-... | in₁ np = in₁ λ {(T , t) → np (invert-deref t)}
+... | in₁ np = in₁ λ (T , t) → np (invert-deref t)
 infer Γ (e₀ ; e₁)
   with infer Γ e₀ | infer Γ e₁
-... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (unit , invert-seq t .πₗ .πᵣ)}
-... | in₀ _         | in₁ nt₁       = in₁ λ {(T , t) → nt₁ (T    , invert-seq t .πᵣ .πᵣ)}
+... | in₁ nt₀       | _             = in₁ λ (_ , t) → nt₀ (unit , invert-seq t .πₗ .πᵣ)
+... | in₀ _         | in₁ nt₁       = in₁ λ (T , t) → nt₁ (T    , invert-seq t .πᵣ .πᵣ)
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
   with decide-eq-ty T₀ unit
 ... | in₀ (refl .unit) = in₀ (T₁ , ty-seq t₀ t₁)
-... | in₁ T₀≠unit      = in₁ λ {(_ , t) → T₀≠unit (uniqueness t₀ (invert-seq t .πₗ .πᵣ))}
+... | in₁ T₀≠unit      = in₁ λ (_ , t) → T₀≠unit (uniqueness t₀ (invert-seq t .πₗ .πᵣ))
 infer Γ (while e₀ loop e₁)
   with infer Γ e₀ | infer Γ e₁
-... | in₁ nt₀       | _             = in₁ λ {(_ , t) → nt₀ (bool , invert-while t .πₗ .πᵣ)}
-... | in₀ _         | in₁ nt₁       = in₁ λ {(_ , t) → nt₁ (unit , invert-while t .πᵣ .πᵣ)}
+... | in₁ nt₀       | _             = in₁ λ (_ , t) → nt₀ (bool , invert-while t .πₗ .πᵣ)
+... | in₀ _         | in₁ nt₁       = in₁ λ (_ , t) → nt₁ (unit , invert-while t .πᵣ .πᵣ)
 ... | in₀ (T₀ , t₀) | in₀ (T₁ , t₁)
   with decide-eq-ty T₀ bool | decide-eq-ty T₁ unit
 ... | in₀ (refl .bool) | in₀ (refl .unit) = in₀ (unit , ty-while t₀ t₁)
-... | in₀ (refl .bool) | in₁ T₁≠unit      = in₁ λ {(_ , t) → T₁≠unit (uniqueness t₁ (invert-while t .πᵣ .πᵣ))}
-... | in₁ T₀≠bool      | _                = in₁ λ {(_ , t) → T₀≠bool (uniqueness t₀ (invert-while t .πₗ .πᵣ))}
+... | in₀ (refl .bool) | in₁ T₁≠unit      = in₁ λ (_ , t) → T₁≠unit (uniqueness t₁ (invert-while t .πᵣ .πᵣ))
+... | in₁ T₀≠bool      | _                = in₁ λ (_ , t) → T₀≠bool (uniqueness t₀ (invert-while t .πₗ .πᵣ))
 
 -- Theorem (Decidability of Typing Judgements):
 -- Any typing judgement is decidable.
