@@ -4,6 +4,9 @@ module L1 where
 
 open import Prelude
 
+open Map! {{...}} using (_$_)
+instance _ = map!-Vec
+
 -- Stores.
 Store : (n : ℕ) → Type
 Store n = Vec ℤ n
@@ -25,19 +28,27 @@ data Ex (k : ℕ) : Type where
   _;_ : (e₀ e₁ : Ex k) → Ex k
   while_loop_ : (e₀ e₁ : Ex k) → Ex k
 
--- Values.
-_is-value : {k : ℕ} (e : Ex k) → Type
-(int: _)             is-value = 𝟏
-(bool: _)            is-value = 𝟏
-skip                 is-value = 𝟏
-(_ op[ _ ] _)        is-value = 𝟎
-(if _ then _ else _) is-value = 𝟎
-(_ := _)             is-value = 𝟎
-(^ _)                is-value = 𝟎
-(_ ; _)              is-value = 𝟎
-(while _ loop _)     is-value = 𝟎
+nat!-Ex : ∀ {k} → Number (Ex k)
+nat!-Ex .Number.Constraint _ = 𝟏
+nat!-Ex .Number.fromNat    n = int: (pos n)
+neg!-Ex : ∀ {k} → Negative (Ex k)
+neg!-Ex .Negative.Constraint _       = 𝟏
+neg!-Ex .Negative.fromNeg    zero    = int: (pos zero)
+neg!-Ex .Negative.fromNeg    (suc n) = int: (nsuc n)
 
--- Reduction steps.
+-- Values.
+_is-a-value : {k : ℕ} (e : Ex k) → Type
+(int: _)             is-a-value = 𝟏
+(bool: _)            is-a-value = 𝟏
+skip                 is-a-value = 𝟏
+(_ op[ _ ] _)        is-a-value = 𝟎
+(if _ then _ else _) is-a-value = 𝟎
+(_ := _)             is-a-value = 𝟎
+(^ _)                is-a-value = 𝟎
+(_ ; _)              is-a-value = 𝟎
+(while _ loop _)     is-a-value = 𝟎
+
+-- Single-step reduction.
 data ⟨_,_─→_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : Store k) → Type where
   op+-n : (n₀ n₁ : ℤ) (s : Store k)
     → ⟨ (int: n₀) op[ o+ ] (int: n₁) , s ─→ int: (n₀ +ℤ n₁) , s ⟩
@@ -50,7 +61,7 @@ data ⟨_,_─→_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : S
     → (n₀ : ℤ) (o : Op) (r₁ : ⟨ e₁ , s ─→ e₁' , s' ⟩)
     → ⟨ (int: n₀) op[ o ] e₁ , s ─→ (int: n₀) op[ o ] e₁' , s' ⟩
   deref : (l : Fin k) (s : Store k)
-    → ⟨ ^ l , s ─→ int: (s # l) , s ⟩
+    → ⟨ ^ l , s ─→ int: (s $ l) , s ⟩
   assign-n : (l : Fin k) (n : ℤ) (s : Store k)
     → ⟨ l := (int: n) , s ─→ skip , s / l ↦ n ⟩ 
   assign-r : {e e' : Ex k} {s s' : Store k}
@@ -69,10 +80,13 @@ data ⟨_,_─→_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : S
   while : (e₀ e₁ : Ex k) (s : Store k)
     → ⟨ while e₀ loop e₁ , s ─→ if e₀ then (e₁ ; (while e₀ loop e₁)) else skip , s ⟩
 
-_is-reducible : {k : ℕ} → (es : Ex k × Store k) → Type
-_is-reducible {k = k} (e , s) = Σ (Ex k × Store k) λ (e' , s') → ⟨ e , s ─→ e' , s' ⟩
+_─→_ : {k : ℕ} → Ex k × Store k → Ex k × Store k → Type
+(e , s) ─→ (e' , s') = ⟨ e , s ─→ e' , s' ⟩
 
--- Reduction chains.
+_is-reducible : {k : ℕ} → Ex k × Store k → Type
+_is-reducible {k = k} ⟨e,s⟩ = ∃ (⟨e,s⟩ ─→_)
+
+-- Multi-step reduction.
 data ⟨_,_─→*_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : Store k) → Type where
   [] : (e : Ex k) (s : Store k)
     → ⟨ e , s ─→* e , s ⟩
@@ -97,7 +111,7 @@ data _⊢_⦂_ {k : ℕ} (Γ : Ctx k) : (e : Ex k) (T : Ty) → Type where
   ty-int : (n : ℤ)
     → Γ ⊢ (int: n) ⦂ int
   ty-deref : {l : Fin k}
-    → (p : Γ # l ≡ ^int)
+    → (p : Γ $ l ≡ ^int)
     → Γ ⊢ (^ l) ⦂ int
   ty-op+ : {e₀ e₁ : Ex k}
     → (t₀ : Γ ⊢ e₀ ⦂ int) (t₁ : Γ ⊢ e₁ ⦂ int)
@@ -112,7 +126,7 @@ data _⊢_⦂_ {k : ℕ} (Γ : Ctx k) : (e : Ex k) (T : Ty) → Type where
     → Γ ⊢ (if e₀ then e₁ else e₂) ⦂ T
   ty-skip : Γ ⊢ skip ⦂ unit
   ty-assign : {e : Ex k} {l : Fin k}
-    → (p : Γ # l ≡ ^int) (t : Γ ⊢ e ⦂ int)
+    → (p : Γ $ l ≡ ^int) (t : Γ ⊢ e ⦂ int)
     → Γ ⊢ (l := e) ⦂ unit
   ty-while : {e₀ e₁ : Ex k}
     → (t₀ : Γ ⊢ e₀ ⦂ bool) (t₁ : Γ ⊢ e₁ ⦂ unit)
@@ -121,21 +135,27 @@ data _⊢_⦂_ {k : ℕ} (Γ : Ctx k) : (e : Ex k) (T : Ty) → Type where
     → (t₀ : Γ ⊢ e₀ ⦂ unit) (t₁ : Γ ⊢ e₁ ⦂ T)
     → Γ ⊢ (e₀ ; e₁) ⦂ T
 
+--module Ty where
+
 -- Ty has decidable equality.
-_ty=?_ : (a b : Ty) → (a ≡ b) is-decidable
-int  ty=? int  = yes (refl int)
-int  ty=? bool = no  λ ()
-int  ty=? unit = no  λ ()
-bool ty=? int  = no  λ ()
-bool ty=? bool = yes (refl bool)
-bool ty=? unit = no  λ ()
-unit ty=? int  = no  λ ()
-unit ty=? bool = no  λ ()
-unit ty=? unit = yes (refl unit)
+_=?-Ty_ : (a b : Ty) → (a ≡ b) is-decidable
+int  =?-Ty int  = yes (refl int)
+int  =?-Ty bool = no  λ ()
+int  =?-Ty unit = no  λ ()
+bool =?-Ty int  = no  λ ()
+bool =?-Ty bool = yes (refl bool)
+bool =?-Ty unit = no  λ ()
+unit =?-Ty int  = no  λ ()
+unit =?-Ty bool = no  λ ()
+unit =?-Ty unit = yes (refl unit)
+
+decide-equality!-Ty = decide-equality! _=?-Ty_
 
 -- Tyₗ has decidable equality.
-_tyl=?_ : (a b : Tyₗ) → (a ≡ b) is-decidable
-^int tyl=? ^int = yes (refl ^int)
+_=?-Tyₗ_ : (a b : Tyₗ) → (a ≡ b) is-decidable
+^int =?-Tyₗ ^int = yes (refl ^int)
+
+decide-equality!-Tyₗ = decide-equality! _=?-Tyₗ_
 
 -- Inversion helper for typing judgements.
 InvertTy : {k : ℕ}
@@ -146,8 +166,8 @@ InvertTy _ (bool: _)               _ = Bool
 InvertTy _ skip                    _ = 𝟏
 InvertTy Γ (e₀ op[ _ ] e₁)         _ = (Γ ⊢ e₀ ⦂ int)  × (Γ ⊢ e₁ ⦂ int)
 InvertTy Γ (if e₀ then e₁ else e₂) T = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ T) × (Γ ⊢ e₂ ⦂ T)
-InvertTy Γ (l := e)                _ = (Γ # l ≡ ^int)  × (Γ ⊢ e ⦂ int)
-InvertTy Γ (^ l)                   _ = Γ # l ≡ ^int
+InvertTy Γ (l := e)                _ = (Γ $ l ≡ ^int)  × (Γ ⊢ e ⦂ int)
+InvertTy Γ (^ l)                   _ = Γ $ l ≡ ^int
 InvertTy Γ (e₀ ; e₁)               T = (Γ ⊢ e₀ ⦂ unit) × (Γ ⊢ e₁ ⦂ T)
 InvertTy Γ (while e₀ loop e₁)      _ = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ unit)
 
