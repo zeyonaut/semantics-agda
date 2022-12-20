@@ -147,11 +147,11 @@ record Decide-Equality! (T : Type ℓ) : Type ℓ where
   field
     _=?_ : (a  b : T) → (a ≡ b) is-decidable
 
--- Identifying properties. 
-_is-identifying : {S : Type ℓ₀}
+-- Unique properties. 
+_is-unique : {S : Type ℓ₀}
   → (F : S → Type ℓ₁)
   → Type (ℓ₀ ⊔ ℓ₁)
-F is-identifying = ∀ {x y} → F x → F y → x ≡ y
+F is-unique = ∀ {x y} → F x → F y → x ≡ y
 
 -- Path operators.
 sym : {A : Type ℓ} {x y : A} → x ≡ y → y ≡ x

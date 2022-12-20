@@ -10,9 +10,6 @@ private variable
 
 -- Enable equality decision syntax.
 open Decide-Equality! {{...}} using (_=?_)
-private instance
-  _ = decide-equality!-Ty
-  _ = decide-equality!-Tyₗ
 
 -- Enable map application syntax.
 open Map! {{...}} using (map ; _$_ ; _#_)
@@ -21,9 +18,9 @@ private instance
   _ = map!-×
 
 -- Theorem (Determinacy):
--- Any reduction steps with the same source have equal targets.
+-- Any two reduction steps with the same source have equal targets.
 identify-targets : {k : ℕ} {e : Ex k} {s : Store k}
-  → ((e , s) ─→_) is-identifying
+  → ((e , s) ─→_) is-unique
 identify-targets (op+-n n₀ n₁ s   ) (op+-n .n₀ .n₁ .s)   = refl (int:  (n₀ +ℤ n₁)  , s)
 identify-targets (op≥-n n₀ n₁ s   ) (op≥-n .n₀ .n₁ .s)   = refl (bool: (n₀ ≥Bℤ n₁) , s)
 identify-targets (op-r₀ r₀ o e₁   ) (op-r₀ r₀' .o .e₁)   = map (       _op[ o ] e₁ , id) ap identify-targets r₀ r₀'
@@ -37,11 +34,16 @@ identify-targets (if-n n₀ e₁ e₂ s ) (if-n .n₀ .e₁ .e₂ s) = refl (Boo
 identify-targets (if-r r₀ e₁ e₂   ) (if-r r₀' .e₁ .e₂)   = map (if_then e₁ else e₂ , id) ap identify-targets r₀ r₀'
 identify-targets (while e₀ e₁ s   ) (while .e₀ .e₁ .s)   = refl (if e₀ then e₁ ; (while e₀ loop e₁) else skip , s)
 
+-- Definition (Reducibility):
+-- A configuration is reducible if it is the source of a reduction step.
+_is-reducible : {k : ℕ} → Ex k × Store k → Type
+_is-reducible {k = k} ⟨e,s⟩ = ∃ (⟨e,s⟩ ─→_)
+
 -- Theorem (Progress):
 -- Any well-typed expression in any store is a value or is reducible.
 progress : {k : ℕ} {Γ : Ctx k} {e : Ex k} {T : Ty}
-         → (t : Γ ⊢ e ⦂ T) (s : Store k)
-         → e is-a-value + (e , s) is-reducible
+  → (t : Γ ⊢ e ⦂ T) (s : Store k)
+  → e is-a-value + (e , s) is-reducible
 progress                    (ty-int n)           s = in₀ ⋆
 progress                    (ty-deref {l = l} p) s = in₁ ((int: (s $ l) , s) , deref l s)
 progress {e = _ op[ _ ] e₁} (ty-op+ t₀ t₁)       s
@@ -113,9 +115,9 @@ safety : {k : ℕ} {e e' : Ex k} {s s' : Store k} {Γ : Ctx k} {T : Ty}
 safety {s' = s'} r* t = progress (t # r*) s'
 
 -- Theorem (Uniqueness of Typing):
--- Any typing derivations with the same context and expression have equal types.
+-- Any two typing derivations with the same context and expression have equal types.
 identify-types : {k : ℕ} {Γ : Ctx k} {e : Ex k}
-  → (Γ ⊢ e ⦂_) is-identifying
+  → (Γ ⊢ e ⦂_) is-unique
 identify-types (ty-int _)      (ty-int _)      = refl int
 identify-types (ty-deref _)    (ty-deref _)    = refl int
 identify-types (ty-op+ _ _)    (ty-op+ _ _)    = refl int
@@ -127,6 +129,30 @@ identify-types (ty-assign _ _) (ty-assign _ _) = refl unit
 identify-types (ty-while _ _)  (ty-while _ _)  = refl unit
 identify-types (ty-seq _ t₁)   (ty-seq _ u₁)   = identify-types t₁ u₁
 
+-- Lemma:
+-- Ty has decidable equality.
+_=?-Ty_ : (a b : Ty) → (a ≡ b) is-decidable
+int  =?-Ty int  = yes (refl int)
+int  =?-Ty bool = no  λ ()
+int  =?-Ty unit = no  λ ()
+bool =?-Ty int  = no  λ ()
+bool =?-Ty bool = yes (refl bool)
+bool =?-Ty unit = no  λ ()
+unit =?-Ty int  = no  λ ()
+unit =?-Ty bool = no  λ ()
+unit =?-Ty unit = yes (refl unit)
+
+decide-equality!-Ty = decide-equality! _=?-Ty_
+private instance _ = decide-equality!-Ty
+
+-- Lemma:
+-- Tyₗ has decidable equality.
+_=?-Tyₗ_ : (a b : Tyₗ) → (a ≡ b) is-decidable
+^int =?-Tyₗ ^int = yes (refl ^int)
+
+decide-equality!-Tyₗ = decide-equality! _=?-Tyₗ_
+private instance _ = decide-equality!-Tyₗ
+
 -- Theorem (Type Inference):
 -- For any context and expression, the existence of an assignable type is decidable.
 _⊢_⦂…∃? : {k : ℕ}
@@ -137,60 +163,60 @@ _⊢_⦂…∃? : {k : ℕ}
 Γ ⊢ skip             ⦂…∃? = yes (unit , ty-skip)
 Γ ⊢ (e₀ op[ o+ ] e₁) ⦂…∃?
   with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
-... | no  ¬∃₀       | _             = no λ (_ , t) → ¬∃₀ (int , invert-ty t .π₀)
-... | yes _         | no  ¬∃₁       = no λ (_ , t) → ¬∃₁ (int , invert-ty t .π₁)
+... | no  ¬∃₀       | _             = no λ {(_ , ty-op+ u₀ _ ) → ¬∃₀ (int , u₀)}
+... | yes _         | no  ¬∃₁       = no λ {(_ , ty-op+ _  u₁) → ¬∃₁ (int , u₁)}
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
   with T₀ =? int | T₁ =? int
-... | no  T₀≠int      | _               = no  λ (_ , t) → T₀≠int (identify-types t₀ (invert-ty t .π₀))
-... | yes _           | no  T₁≠int      = no  λ (_ , t) → T₁≠int (identify-types t₁ (invert-ty t .π₁))
+... | no  T₀≠int      | _               = no  λ {(_ , ty-op+ u₀ _ ) → T₀≠int (identify-types t₀ u₀)}
+... | yes _           | no  T₁≠int      = no  λ {(_ , ty-op+ _  u₁) → T₁≠int (identify-types t₁ u₁)}
 ... | yes (refl .int) | yes (refl .int) = yes (int , ty-op+ t₀ t₁)
 Γ ⊢ (e₀ op[ o≥ ] e₁) ⦂…∃? 
   with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
-... | no  ¬∃₀       | _             = no λ (_ , t) → ¬∃₀ (int , invert-ty t .π₀)
-... | yes _         | no ¬∃₁        = no λ (_ , t) → ¬∃₁ (int , invert-ty t .π₁)
+... | no  ¬∃₀       | _             = no λ {(_ , ty-op≥ u₀ _ ) → ¬∃₀ (int , u₀)}
+... | yes _         | no ¬∃₁        = no λ {(_ , ty-op≥ _  u₁) → ¬∃₁ (int , u₁)}
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
   with T₀ =? int | T₁ =? int
-... | no  T₀≠int      | _               = no  λ (_ , t) → T₀≠int (identify-types t₀ (invert-ty t .π₀))
-... | yes _           | no  T₁≠int      = no  λ (_ , t) → T₁≠int (identify-types t₁ (invert-ty t .π₁))
+... | no  T₀≠int      | _               = no  λ {(_ , ty-op≥ u₀ _ ) → T₀≠int (identify-types t₀ u₀)}
+... | yes _           | no  T₁≠int      = no  λ {(_ , ty-op≥ _  u₁) → T₁≠int (identify-types t₁ u₁)}
 ... | yes (refl .int) | yes (refl .int) = yes (bool , ty-op≥ t₀ t₁)
 Γ ⊢ (if e₀ then e₁ else e₂) ⦂…∃?
   with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃? | Γ ⊢ e₂ ⦂…∃?
-... | no  ¬∃₀       | _             | _             = no λ (_ , t) → ¬∃₀ (bool , (invert-ty t .π₀))
-... | yes _         | no  ¬∃₁       | _             = no λ (T , t) → ¬∃₁ (T    , (invert-ty t .π₁))
-... | yes _         | yes _         | no  ¬∃₂       = no λ (T , t) → ¬∃₂ (T    , (invert-ty t .π₂))
+... | no  ¬∃₀       | _             | _             = no λ {(_ , ty-if u₀ _  _ ) → ¬∃₀ (bool , u₀)}
+... | yes _         | no  ¬∃₁       | _             = no λ {(U , ty-if _  u₁ _ ) → ¬∃₁ (U    , u₁)}
+... | yes _         | yes _         | no  ¬∃₂       = no λ {(U , ty-if _  _  u₂) → ¬∃₂ (U    , u₂)}
 ... | yes (T₀ , t₀) | yes (T₁ , t₁) | yes (T₂ , t₂)
   with T₀ =? bool | T₁ =? T₂
-... | no  T₀≠bool      | _              = no  λ (_ , t) → T₀≠bool (identify-types t₀ (invert-ty t .π₀))
-... | yes _            | no  T₁≠T₂      = no  λ (_ , t) → T₁≠T₂ (identify-types t₁ (invert-ty t .π₁) ∙ identify-types (invert-ty t .π₂) t₂)
+... | no  T₀≠bool      | _              = no  λ {(_ , ty-if u₀ _  _ ) → T₀≠bool (identify-types t₀ u₀)}
+... | yes _            | no  T₁≠T₂      = no  λ {(_ , ty-if _  u₁ u₂) → T₁≠T₂   (identify-types t₁ u₁ ∙ identify-types u₂ t₂)}
 ... | yes (refl .bool) | yes (refl .T₁) = yes (T₁ , ty-if t₀ t₁ t₂)
 Γ ⊢ (l := e) ⦂…∃?
   with Γ ⊢ e ⦂…∃?
-... | no  ¬∃        = no  λ (T , t) → ¬∃ (int , invert-ty t .π₁)
+... | no  ¬∃₀       = no  λ {(_ , ty-assign _ u₀) → ¬∃₀ (int , u₀)}
 ... | yes (T₀ , t₀)
   with (Γ $ l) =? ^int | T₀ =? int
-... | no  Γ$l≠^int | _               = no  λ (_ , t) → Γ$l≠^int (invert-ty t .π₀)
-... | yes _        | no T₀≠int       = no  λ (_ , t) → T₀≠int (identify-types t₀ (invert-ty t .π₁))
+... | no  Γ$l≠^int | _               = no  λ {(_ , ty-assign Γ$l=^int _ ) → Γ$l≠^int Γ$l=^int}
+... | yes _        | no T₀≠int       = no  λ {(_ , ty-assign _        u₀) → T₀≠int (identify-types t₀ u₀)}
 ... | yes Γ$l=^int | yes (refl .int) = yes (unit , ty-assign Γ$l=^int t₀)
 Γ ⊢ (^ l) ⦂…∃?
   with (Γ $ l) =? ^int
-... | no  Γ$l≠^int = no  λ (T , t) → Γ$l≠^int (invert-ty t)
+... | no  Γ$l≠^int = no  λ {(_ , ty-deref Γ$l=^int) → Γ$l≠^int Γ$l=^int}
 ... | yes Γ$l=^int = yes (int , ty-deref Γ$l=^int)
 Γ ⊢ (e₀ ; e₁) ⦂…∃?
   with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
-... | no  ¬∃₀       | _             = no  λ (_ , t) → ¬∃₀ (unit , invert-ty t .π₀)
-... | yes _         | no  ¬∃₁       = no  λ (T , t) → ¬∃₁ (T    , invert-ty t .π₁)
+... | no  ¬∃₀       | _             = no  λ {(_ , ty-seq u₀ _ ) → ¬∃₀ (unit , u₀)}
+... | yes _         | no  ¬∃₁       = no  λ {(U , ty-seq _  u₁) → ¬∃₁ (U    , u₁)}
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
   with T₀ =? unit
-... | no  T₀≠unit      = no  λ (_ , t) → T₀≠unit (identify-types t₀ (invert-ty t .π₀))
+... | no  T₀≠unit      = no  λ {(_ , ty-seq u₀ _) → T₀≠unit (identify-types t₀ u₀)}
 ... | yes (refl .unit) = yes (T₁ , ty-seq t₀ t₁)
 Γ ⊢ (while e₀ loop e₁) ⦂…∃?
   with Γ ⊢ e₀ ⦂…∃? | Γ ⊢ e₁ ⦂…∃?
-... | no  ¬∃₀       | _             = no  λ (_ , t) → ¬∃₀ (bool , invert-ty t .π₀)
-... | yes _         | no  ¬∃₁       = no  λ (_ , t) → ¬∃₁ (unit , invert-ty t .π₁)
+... | no  ¬∃₀       | _             = no  λ {(_ , ty-while u₀ _ ) → ¬∃₀ (bool , u₀)}
+... | yes _         | no  ¬∃₁       = no  λ {(_ , ty-while _  u₁) → ¬∃₁ (unit , u₁)}
 ... | yes (T₀ , t₀) | yes (T₁ , t₁)
   with T₀ =? bool | T₁ =? unit
-... | no  T₀≠bool      | _                = no  λ (_ , t) → T₀≠bool (identify-types t₀ (invert-ty t .π₀))
-... | yes _            | no  T₁≠unit      = no  λ (_ , t) → T₁≠unit (identify-types t₁ (invert-ty t .π₁))
+... | no  T₀≠bool      | _                = no  λ {(_ , ty-while u₀ _ ) → T₀≠bool (identify-types t₀ u₀)}
+... | yes _            | no  T₁≠unit      = no  λ {(_ , ty-while _  u₁) → T₁≠unit (identify-types t₁ u₁)}
 ... | yes (refl .bool) | yes (refl .unit) = yes (unit , ty-while t₀ t₁)
 
 -- Theorem (Decidability of Typing Judgements):
@@ -226,8 +252,8 @@ value→irreducible () s ((.(if e₀ then e₁ ; (while e₀ loop e₁) else sk
 -- Evaluation.
 evaluate : {k : ℕ} {Γ : Ctx k} {e : Ex k} {T : Ty}
   → (t : Γ ⊢ e ⦂ T) (s : Store k) (depth : ℕ)
-  → Maybe (Σ (Ex k × Store k) λ (e' , s') → ⟨ e , s ─→* e' , s' ⟩)
-evaluate {e = e} _ s zero = some ((e , s), [] e s) 
+  → Maybe (∃ ((e , s) ─→*_))
+evaluate {e = e} _ s zero = some ((e , s) , [] e s) 
 evaluate {e = e} t s (suc depth)
   with progress t s
 ... | in₀ v               = some ((e , s) , [] e s)

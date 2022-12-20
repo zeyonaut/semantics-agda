@@ -83,9 +83,6 @@ data ⟨_,_─→_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : S
 _─→_ : {k : ℕ} → Ex k × Store k → Ex k × Store k → Type
 (e , s) ─→ (e' , s') = ⟨ e , s ─→ e' , s' ⟩
 
-_is-reducible : {k : ℕ} → Ex k × Store k → Type
-_is-reducible {k = k} ⟨e,s⟩ = ∃ (⟨e,s⟩ ─→_)
-
 -- Multi-step reduction.
 data ⟨_,_─→*_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : Store k) → Type where
   [] : (e : Ex k) (s : Store k)
@@ -93,6 +90,9 @@ data ⟨_,_─→*_,_⟩ {k : ℕ} : (e : Ex k) (s : Store k) (e' : Ex k) (s' : 
   _::_ : {e e' e'' : Ex k} {s s' s'' : Store k}
     → (r : ⟨ e , s ─→ e' , s' ⟩) (r* : ⟨ e' , s' ─→* e'' , s'' ⟩)
     → ⟨ e , s ─→* e'' , s'' ⟩
+
+_─→*_ : {k : ℕ} → Ex k × Store k → Ex k × Store k → Type
+(e , s) ─→* (e' , s') = ⟨ e , s ─→* e' , s' ⟩
 
 -- Expression types.
 data Ty : Type where
@@ -134,53 +134,3 @@ data _⊢_⦂_ {k : ℕ} (Γ : Ctx k) : (e : Ex k) (T : Ty) → Type where
   ty-seq : {e₀ e₁ : Ex k} {T : Ty}
     → (t₀ : Γ ⊢ e₀ ⦂ unit) (t₁ : Γ ⊢ e₁ ⦂ T)
     → Γ ⊢ (e₀ ; e₁) ⦂ T
-
---module Ty where
-
--- Ty has decidable equality.
-_=?-Ty_ : (a b : Ty) → (a ≡ b) is-decidable
-int  =?-Ty int  = yes (refl int)
-int  =?-Ty bool = no  λ ()
-int  =?-Ty unit = no  λ ()
-bool =?-Ty int  = no  λ ()
-bool =?-Ty bool = yes (refl bool)
-bool =?-Ty unit = no  λ ()
-unit =?-Ty int  = no  λ ()
-unit =?-Ty bool = no  λ ()
-unit =?-Ty unit = yes (refl unit)
-
-decide-equality!-Ty = decide-equality! _=?-Ty_
-
--- Tyₗ has decidable equality.
-_=?-Tyₗ_ : (a b : Tyₗ) → (a ≡ b) is-decidable
-^int =?-Tyₗ ^int = yes (refl ^int)
-
-decide-equality!-Tyₗ = decide-equality! _=?-Tyₗ_
-
--- Inversion helper for typing judgements.
-InvertTy : {k : ℕ}
-  → (Γ : Ctx k) (e : Ex k) (T : Ty)
-  → Type
-InvertTy _ (int: _)                _ = ℤ
-InvertTy _ (bool: _)               _ = Bool
-InvertTy _ skip                    _ = 𝟏
-InvertTy Γ (e₀ op[ _ ] e₁)         _ = (Γ ⊢ e₀ ⦂ int)  × (Γ ⊢ e₁ ⦂ int)
-InvertTy Γ (if e₀ then e₁ else e₂) T = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ T) × (Γ ⊢ e₂ ⦂ T)
-InvertTy Γ (l := e)                _ = (Γ $ l ≡ ^int)  × (Γ ⊢ e ⦂ int)
-InvertTy Γ (^ l)                   _ = Γ $ l ≡ ^int
-InvertTy Γ (e₀ ; e₁)               T = (Γ ⊢ e₀ ⦂ unit) × (Γ ⊢ e₁ ⦂ T)
-InvertTy Γ (while e₀ loop e₁)      _ = (Γ ⊢ e₀ ⦂ bool) × (Γ ⊢ e₁ ⦂ unit)
-
-invert-ty : {k : ℕ} {Γ : Ctx k} {e : Ex k} {T : Ty}
-  → (t : Γ ⊢ e ⦂ T)
-  → InvertTy Γ e T
-invert-ty (ty-int n)       = n
-invert-ty (ty-deref p)     = p
-invert-ty (ty-op+ t₀ t₁)   = t₀ , t₁
-invert-ty (ty-bool b)      = b
-invert-ty (ty-op≥ t₀ t₁)   = t₀ , t₁
-invert-ty (ty-if t₀ t₁ t₂) = t₀ , t₁ , t₂
-invert-ty ty-skip          = ⋆
-invert-ty (ty-assign p t)  = p  , t
-invert-ty (ty-while t₀ t₁) = t₀ , t₁
-invert-ty (ty-seq t₀ t₁)   = t₀ , t₁
