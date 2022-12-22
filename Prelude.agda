@@ -108,32 +108,29 @@ _preserves_ : {T : Type ℓ₀}
 R preserves P = P ═[ R ]⇒ P 
 {-# INLINE _preserves_ #-}
 
-record Map! {S : Type ℓ₀} {T : Type ℓ₁}
-  (D : S → Type ℓ₂) (R : S → T  → Type ℓ₃) (C : T → Type ℓ₄)
-  : Type (ℓ₀ ⊔ ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄) where
+record Map! (M : Type ℓ₀) (S : Type ℓ₁) (T : Type ℓ₂)
+  : Type (ℓ₀ ⊔ ℓ₁ ⊔ ℓ₂) where
   field
-   map : D ═[ R ]⇒ C
-  _$_ : ∀ {s t} → R s t → D s → C t
+   map : M → S → T
+  _$_ : M → S → T
   m $ w = map m w
-  _#_ : ∀ {s t} → D s → R s t → C t
+  _#_ : S → M → T
   w # m = map m w
 
 open Map! {{...}} using (_$_ ; _#_)
 
-map! : {S : Type ℓ₀} {T : Type ℓ₁}
-  (D : S → Type ℓ₂) (R : S → T  → Type ℓ₃) (C : T → Type ℓ₄)
-  → D ═[ R ]⇒ C
-  → Map! D R C
-map! D R C convert .Map!.map = convert
+map! : {M : Type ℓ₀} {S : Type ℓ₁} {T : Type ℓ₂}
+  → (M → S → T)
+  → Map! M S T
+map! map .Map!.map = map
 
 map!-preserves : {T : Type ℓ₀}
     → (R : T → T → Type ℓ₁) (P : T → Type ℓ₂) (transport : R preserves P)
-    → Map! P R P
-map!-preserves R P transport .Map!.map = transport
+    → (s t : T) → Map! (R s t) (P s) (P t)
+map!-preserves R P transport s t .Map!.map = transport
 
-map!-× : Map! (uncurry (_×_))
-              (λ ((S₀ , S₁) : Type ℓ₀ × Type ℓ₁) ((T₀ , T₁) : Type ℓ₂ × Type ℓ₃) → (S₀ → T₀) × (S₁ → T₁))
-              (uncurry (_×_))
+map!-× : {S₀ : Type ℓ₀} {T₀ : Type ℓ₁} {S₁ : Type ℓ₂} {T₁ : Type ℓ₃}
+  → Map! ((S₀ → T₀) × (S₁ → T₁)) (S₀ × S₁) (T₀ × T₁)
 map!-× .Map!.map (f₀ , f₁) (s₀ , s₁) = f₀ s₀ , f₁ s₁
 
 -- Decidability.
@@ -190,7 +187,7 @@ _$V_ : {A : Type} {n : ℕ} → Vec A n → Fin n → A
 (x :: v) $V zero    = x
 (x :: v) $V (suc k) = v $V k
 
-map!-Vec = map! Fin (swap Vec) (id _) _$V_
+map!-Vec = λ {A n} → map! (_$V_ {A = A} {n = n})
 
 _/_↦_ : {A : Type} {n : ℕ} → Vec A n → Fin n → A → Vec A n
 (x :: xs) / zero  ↦ x' = x' :: xs

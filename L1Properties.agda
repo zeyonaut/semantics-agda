@@ -37,7 +37,7 @@ identify-targets (while e₀ e₁ s   ) (while .e₀ .e₁ .s)   = refl (if e₀
 -- Definition (Reducibility):
 -- A configuration is reducible if it is the source of a reduction step.
 _is-reducible : {k : ℕ} → Ex k × Store k → Type
-_is-reducible {k = k} ⟨e,s⟩ = ∃ (⟨e,s⟩ ─→_)
+_is-reducible ⟨e,s⟩ = ∃ (⟨e,s⟩ ─→_)
 
 -- Theorem (Progress):
 -- Any well-typed expression in any store is a value or is reducible.
@@ -64,7 +64,7 @@ progress {e = if _ then e₁ else e₂} (ty-if t₀ _ _) s
 progress ty-skip                 s = in₀ ⋆
 progress (ty-assign {l = l} p t) s
   with progress t s | t
-... | in₀ ⋆               | ty-int n = in₁ ((skip    , (s / l ↦ n)) , assign-n l n s)
+... | in₀ ⋆               | ty-int n = in₁ (((skip    , (s / l ↦ n)) , assign-n l n s))
 ... | in₁ ((e' , s') , r) | _        = in₁ ((l := e' , s')          , assign-r l r)
 progress {e = while e₀ loop e₁} (ty-while _ _) s = in₁ ((if e₀ then (e₁ ; (while e₀ loop e₁)) else skip , s), while e₀ e₁ s)
 progress {e = e₀ ; e₁}          (ty-seq t₀ t₁) s
@@ -93,7 +93,7 @@ transport-step (if-r r₀ _ _)      (ty-if t₀ t₁ t₂) = ty-if (transport-st
 transport-step (while _ _ _)      (ty-while t₀ t₁) = ty-if t₀ (ty-seq t₁ (ty-while t₀ t₁)) ty-skip
 
 -- Enable application of reduction steps to typing derivations.
-map!-Reduction-Step = λ {k} {s : Store k} {s'} {Γ} {T} → map!-preserves (⟨_, s ─→_, s' ⟩) (Γ ⊢_⦂ T) transport-step
+map!-Reduction-Step = λ {k} {s : Store k} {s'} {Γ} {T} {e e'} → map!-preserves (⟨_, s ─→_, s' ⟩) (Γ ⊢_⦂ T) transport-step e e'
 private instance _ = map!-Reduction-Step
   
 -- Theorem (Multi-step Type Preservation):
@@ -104,7 +104,7 @@ transport-chain ([] _ _)  t = t
 transport-chain (r :: r*) t = transport-chain r* (t # r)
 
 -- Enable application of reduction chains to typing derivations.
-map!-Reduction-Chain = λ {k} {s : Store k} {s'} {Γ} {T} → map!-preserves (⟨_, s ─→*_, s' ⟩) (Γ ⊢_⦂ T) transport-chain
+map!-Reduction-Chain = λ {k} {s : Store k} {s'} {Γ} {T} {e e'} → map!-preserves (⟨_, s ─→*_, s' ⟩) (Γ ⊢_⦂ T) transport-chain e e'
 private instance _ = map!-Reduction-Chain
 
 -- Theorem (Type Safety):
